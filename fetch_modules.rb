@@ -80,7 +80,7 @@ class ModuleFetcher
 			modules_in_category.each do |modul|	
 				link = modul.xpath("a")
 				name = link.text
-				ects = fetch_etcs_from_module link.xpath("@href")
+				ects = fetch_etcs_from_module link.xpath("@href").text
 				result = @db.execute("SELECT m.id, m.name, m.ects FROM modules m WHERE name = ?", name)
 				if result.length == 0
 					@db.execute("INSERT INTO modules (category_id, name, ects) VALUES (?, ?, ?)", category_id, name, ects)
@@ -92,11 +92,12 @@ class ModuleFetcher
 	end
 	
 	def fetch_etcs_from_module(link)
-		"0"
+		doc = open_url(link)
+		doc.xpath("//table/tbody[2]/tr[4]/td[2]").text
 	end
 	
 	def open_url(url)
-		file = url.startWith("http") ? open(url) : File.open(url)
+		file = url.start_with?("http") ? open(url) : File.open(url)
 		doc = Nokogiri::HTML(file)
 		file.close
 		
