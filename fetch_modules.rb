@@ -8,15 +8,15 @@
 
 require 'sqlite3'
 require 'nokogiri'
+require 'open-uri'
 
 class ModuleFetcher
-#	MODULE_LIST_URL = "https://unterricht.hsr.ch/staticWeb/I/STD_05/Module.html"
-#	ECTS_PER_CATEGORY_URL = "https://unterricht.hsr.ch/staticWeb/I/STD_05/MinKperKat.html"
-	MODULE_LIST_URL = "static/Module.html"
-	ECTS_PER_CATEGORY_URL = "static/MinKperKat.html"
+	MODULE_LIST_FILE = "Module.html"
+	ECTS_PER_CATEGORY_FILE = "MinKperKat.html"
 	DB_PATH = "db/"
 	
-	def initialize()
+	def initialize(studyCourseUrl)
+		@studyCourseUrl = studyCourseUrl
 		@db = SQLite3::Database.new(DB_PATH + "modules.db")
 		create_tables
 		
@@ -24,6 +24,10 @@ class ModuleFetcher
 		fetch_modules_per_category
 		
 		@db.close
+	end
+	
+	def get_full_path(file)
+		@studyCourseUrl + "/" + file
 	end
 	
 	def create_tables
@@ -39,7 +43,7 @@ class ModuleFetcher
 	end
 	
 	def fetch_categories	
-		doc = open_url(ECTS_PER_CATEGORY_URL)
+		doc = open_url(get_full_path(ECTS_PER_CATEGORY_FILE))
 		nodes = doc.xpath("//table/tbody/tr")
 		
 		nodes.each do |node|
@@ -65,7 +69,7 @@ class ModuleFetcher
 	end
 	
 	def fetch_modules_per_category
-		doc = open_url(MODULE_LIST_URL)
+		doc = open_url(get_full_path(MODULE_LIST_FILE))
 		categories = doc.xpath("//h2")
 		
 		categories.each do |category|
@@ -76,8 +80,7 @@ class ModuleFetcher
 			modules_in_category.each do |modul|	
 				link = modul.xpath("a")
 				name = link.text
-				ects = "1"
-#				ects = fetch_etcs_from_module url
+				ects = fetch_etcs_from_module link.attr(href)
 				result = @db.execute("SELECT m.id, m.name, m.ects FROM modules m WHERE name = ?", name)
 				if result.length == 0
 					@db.execute("INSERT INTO modules (category_id, name, ects) VALUES (?, ?, ?)", category_id, name, ects)
@@ -93,12 +96,11 @@ class ModuleFetcher
 	end
 	
 	def open_url(url)
-		f = File.open(url)
-		doc = Nokogiri::HTML(f)
-		f.close
+		file = File.open(url)
+#		file = open(url)
+		doc = Nokogiri::HTML(file)
+		file.close
 		
 		return doc
 	end
 end
-
-ModuleFetcher.new
