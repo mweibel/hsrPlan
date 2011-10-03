@@ -96,8 +96,7 @@ class ModuleFetcher
 	end
 	
 	def open_url(url)
-		file = File.open(url)
-#		file = open(url)
+		file = url.startWith("http") ? open(url) : File.open(url)
 		doc = Nokogiri::HTML(file)
 		file.close
 		
