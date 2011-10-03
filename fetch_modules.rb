@@ -80,7 +80,7 @@ class ModuleFetcher
 			modules_in_category.each do |modul|	
 				link = modul.xpath("a")
 				name = link.text
-				ects = fetch_etcs_from_module link.attr(href)
+				ects = fetch_etcs_from_module link.xpath("@href")
 				result = @db.execute("SELECT m.id, m.name, m.ects FROM modules m WHERE name = ?", name)
 				if result.length == 0
 					@db.execute("INSERT INTO modules (category_id, name, ects) VALUES (?, ?, ?)", category_id, name, ects)
